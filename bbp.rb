@@ -9,25 +9,41 @@ require 'mechanize'
 
 class BostonBigPicture
   def self.run()
-    config
-
     agent = Mechanize.new
     agent.user_agent_alias = 'Linux Firefox'
     agent.cookie_jar.clear!
     agent.follow_meta_refresh = true
     agent.redirect_ok = true
 
-    page = agent.get(@@cfg[:url])
+    starturl = "http://www.boston.com/bigpicture/"
+    basedir = "/tmp/site/"
 
+    page = agent.get(starturl)
+
+    stories = []
+    puts "Available stories:"
     agent.page.search('.headDiv2/h2/a').each do |entry|
       title = entry.children.to_s
       link = entry['href']
+      stories.push(link)
+      puts "#{title}: #{link}"
     end
-  end
+    puts
 
-  def self.config()
-    @@cfg = {}
-    @@cfg[:url] = "http://www.boston.com/bigpicture/"
+    stories.each do |url|
+      page = agent.get(url)
+      series_name = url.split('/').last.split('.').first
+      dir = "#{basedir}/#{series_name}"
+      puts "Downloading #{series_name}"
+      FileUtils.mkdir_p dir
+      Dir.chdir(dir) do
+        agent.page.search('.bpImage').each do |img|
+          path = img['src']
+          #name = path.split('/').last
+          agent.get(path).save
+        end
+      end
+    end
   end
 end
 
