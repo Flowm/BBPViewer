@@ -4,7 +4,7 @@
 require 'rubygems'
 require 'mechanize'
 
-class BostonBigPicture
+class BBPViewer
   def self.run()
     agent = Mechanize.new
     agent.user_agent_alias = 'Linux Firefox'
@@ -13,11 +13,9 @@ class BostonBigPicture
     agent.redirect_ok = true
 
     starturl = "http://www.boston.com/bigpicture/"
-    basedir = "/tmp/site/"
-
     page = agent.get(starturl)
 
-    # stories hash containing all information
+    # stories hash containing all retrieved data
     # {name => [url,title,[[caption,imgurl],..]
     stories = {}
 
@@ -34,9 +32,9 @@ class BostonBigPicture
 
     # Iterate over the stories
     stories.each do |name, value|
+      puts "Retrieving #{name}"
       url, title = value
       page = agent.get(url)
-      puts "Saving #{name}"
 
       # Save image captions
       captions = []
@@ -48,28 +46,47 @@ class BostonBigPicture
         end
       end
 
-      # Save image URLs (and download?)
+      # Save image URLs
       imgurls = []
-      dir = "#{basedir}/#{name}"
-      FileUtils.mkdir_p dir
-      Dir.chdir(dir) do
-        agent.page.search('.bpImage').each do |img|
-          url = img['src']
-          imgurls.push(url)
-          #agent.get(url).save
-        end
+      agent.page.search('.bpImage').each do |img|
+        url = img['src']
+        imgurls.push(url)
       end
 
-      # Merge imgurls with captions
+      # Merge image URLs and captions
       pictures = []
       imgurls.each_index do |i|
         pictures.push([imgurls[i],captions[i]])
       end
       stories[name].push(pictures)
     end
-    puts
-    puts stories
+    stories
+  end
+
+  def self.saveimg(stories)
+    # Download images
+    agent = Mechanize.new
+    agent.user_agent_alias = 'Linux Firefox'
+    agent.cookie_jar.clear!
+    agent.follow_meta_refresh = true
+    agent.redirect_ok = true
+
+    basedir = "/tmp/bbp/"
+    # Iterate over the stories
+    stories.each do |name, value|
+      puts "Downloading #{name}"
+      url, title, pictures = value
+
+      dir = "#{basedir}/#{name}"
+      FileUtils.mkdir_p dir
+      Dir.chdir(dir) do
+        pictures.each do |entry|
+          agent.get(entry.first).save
+        end
+      end
+    end
   end
 end
 
-BostonBigPicture.run
+stories = BBPViewer.run
+BBPViewer.saveimg(stories)
