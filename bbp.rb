@@ -2,9 +2,6 @@
 # encoding: utf-8
 
 require 'rubygems'
-require 'optparse'
-require 'yaml'
-require 'highline/import'
 require 'mechanize'
 
 class BostonBigPicture
@@ -20,30 +17,58 @@ class BostonBigPicture
 
     page = agent.get(starturl)
 
-    stories = []
+    # stories hash containing all information
+    # {name => [url,title,[[caption,imgurl],..]
+    stories = {}
+
+    # Search for available stories
     puts "Available stories:"
     agent.page.search('.headDiv2/h2/a').each do |entry|
+      url = entry['href']
+      name = url.split('/').last.split('.').first
       title = entry.children.to_s
-      link = entry['href']
-      stories.push(link)
-      puts "#{title}: #{link}"
+      stories[name] = [url,title]
+      puts "#{title}: #{url}"
     end
     puts
 
-    stories.each do |url|
+    # Iterate over the stories
+    stories.each do |name, value|
+      url, title = value
       page = agent.get(url)
-      series_name = url.split('/').last.split('.').first
-      dir = "#{basedir}/#{series_name}"
-      puts "Downloading #{series_name}"
+      puts "Saving #{name}"
+
+      # Save image captions
+      captions = []
+      agent.page.search('.bpCaption').each do |caption|
+        caption.children.each do |element|
+          if element.class == Nokogiri::XML::Text
+            captions.push(element.to_s)
+          end
+        end
+      end
+
+      # Save image URLs (and download?)
+      imgurls = []
+      dir = "#{basedir}/#{name}"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
         agent.page.search('.bpImage').each do |img|
-          path = img['src']
-          #name = path.split('/').last
-          agent.get(path).save
+          url = img['src']
+          imgurls.push(url)
+          #agent.get(url).save
         end
       end
+
+      # Merge imgurls with captions
+      pictures = []
+      imgurls.each_index do |i|
+        pictures.push([imgurls[i],captions[i]])
+      end
+      stories[name].push(pictures)
     end
+    puts
+    puts stories
   end
 end
 
