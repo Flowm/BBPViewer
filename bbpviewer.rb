@@ -16,7 +16,7 @@ class BBPViewer
     page = agent.get(starturl)
 
     # stories hash containing all retrieved data
-    # {name => [url,title,[[caption,imgurl],..]
+    # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
     stories = {}
 
     # Search for available stories
@@ -35,6 +35,21 @@ class BBPViewer
       puts "Retrieving #{name}"
       url, title = value
       page = agent.get(url)
+
+      # Save the story description
+      stories[name].push(agent.page.search('.bpBody').children.to_s)
+
+      # Save the image count
+      count = -1
+      agent.page.search('.bpBody').children.each do |element|
+        if element.class == Nokogiri::XML::Element
+          txt = element.children.to_s 
+          if txt =~ /(\d+) photos total/
+            count = txt.split(' ').first
+          end
+        end
+      end
+      stories[name].push(count)
 
       # Save image captions
       captions = []
@@ -75,7 +90,7 @@ class BBPViewer
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
-      url, title, pictures = value
+      url, title, description, photocount, pictures = value
 
       dir = "#{basedir}/#{name}"
       FileUtils.mkdir_p dir
