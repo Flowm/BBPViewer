@@ -10,14 +10,16 @@ BASEDIR = File.expand_path("~/tmp/bbp")
 GETIMG = true
 
 class BBPViewer
-  def self.run()
-    agent = Mechanize.new
-    agent.user_agent_alias = 'Linux Firefox'
-    agent.cookie_jar.clear!
-    agent.follow_meta_refresh = true
-    agent.redirect_ok = true
+  def initialize()
+    @agent = Mechanize.new
+    @agent.user_agent_alias = 'Linux Firefox'
+    @agent.cookie_jar.clear!
+    @agent.follow_meta_refresh = true
+    @agent.redirect_ok = true
+  end
 
-    page = agent.get(STARTURL)
+  def run()
+    page = @agent.get(STARTURL)
 
     # stories hash containing all retrieved data
     # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
@@ -25,7 +27,7 @@ class BBPViewer
 
     # Search for available stories
     puts "Available stories:"
-    agent.page.search('.headDiv2/h2/a').each do |entry|
+    @agent.page.search('.headDiv2/h2/a').each do |entry|
       url = entry['href']
       name = url.split('/').last.split('.').first
       title = entry.children.to_s
@@ -38,14 +40,14 @@ class BBPViewer
     stories.each do |name, value|
       puts "Retrieving #{name}"
       url, title = value
-      page = agent.get(url)
+      page = @agent.get(url)
 
       # Save the story description
-      stories[name].push(agent.page.search('.bpBody').children.to_s)
+      stories[name].push(@agent.page.search('.bpBody').children.to_s)
 
       # Save the image count
       count = -1
-      agent.page.search('.bpBody').children.each do |element|
+      @agent.page.search('.bpBody').children.each do |element|
         if element.class == Nokogiri::XML::Element
           txt = element.children.to_s 
           if txt =~ /(\d+) photos total/
@@ -57,7 +59,7 @@ class BBPViewer
 
       # Save image captions
       captions = []
-      agent.page.search('.bpCaption').each do |caption|
+      @agent.page.search('.bpCaption').each do |caption|
         caption.children.each do |element|
           if element.class == Nokogiri::XML::Text
             captions.push(element.to_s)
@@ -67,7 +69,7 @@ class BBPViewer
 
       # Save image URLs
       imgurls = []
-      agent.page.search('.bpImage').each do |img|
+      @agent.page.search('.bpImage').each do |img|
         url = img['src']
         imgurls.push(url)
       end
@@ -82,14 +84,8 @@ class BBPViewer
     stories
   end
 
-  def self.saveimg(stories)
+  def saveimg(stories)
     # Download images
-    agent = Mechanize.new
-    agent.user_agent_alias = 'Linux Firefox'
-    agent.cookie_jar.clear!
-    agent.follow_meta_refresh = true
-    agent.redirect_ok = true
-
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
@@ -99,13 +95,13 @@ class BBPViewer
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
         pictures.each do |entry|
-          agent.get(entry.first).save
+          @agent.get(entry.first).save
         end
       end
     end
   end
 
-  def self.createhtml(stories)
+  def createhtml(stories)
     stories.each do |name, value|
       url, title, description, photocount, pictures = value
 
@@ -141,6 +137,7 @@ class BBPViewer
   end
 end
 
-stories = BBPViewer.run
-BBPViewer.saveimg(stories) if GETIMG
-BBPViewer.createhtml(stories)
+bbpviewer = BBPViewer.new
+stories = bbpviewer.run
+bbpviewer.saveimg(stories) if GETIMG
+bbpviewer.createhtml(stories)
