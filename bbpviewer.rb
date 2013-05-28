@@ -23,8 +23,16 @@ class BBPViewer
 
     # stories hash containing all retrieved data
     # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
-    stories = {}
+    stories = getrecentstories
 
+    # Iterate over the stories
+    stories.each do |name, data|
+      data = parsestory(name, data)
+    end
+  end
+
+  def getrecentstories()
+    stories = {}
     # Search for available stories
     puts "Available stories:"
     @agent.page.search('.headDiv2/h2/a').each do |entry|
@@ -35,54 +43,56 @@ class BBPViewer
       puts "#{title}: #{url}"
     end
     puts
-
-    # Iterate over the stories
-    stories.each do |name, value|
-      puts "Retrieving #{name}"
-      url, title = value
-      page = @agent.get(url)
-
-      # Save the story description
-      stories[name].push(@agent.page.search('.bpBody').children.to_s)
-
-      # Save the image count
-      count = -1
-      @agent.page.search('.bpBody').children.each do |element|
-        if element.class == Nokogiri::XML::Element
-          txt = element.children.to_s 
-          if txt =~ /(\d+) photos total/
-            count = txt.split(' ').first
-          end
-        end
-      end
-      stories[name].push(count)
-
-      # Save image captions
-      captions = []
-      @agent.page.search('.bpCaption').each do |caption|
-        caption.children.each do |element|
-          if element.class == Nokogiri::XML::Text
-            captions.push(element.to_s)
-          end
-        end
-      end
-
-      # Save image URLs
-      imgurls = []
-      @agent.page.search('.bpImage').each do |img|
-        url = img['src']
-        imgurls.push(url)
-      end
-
-      # Merge image URLs and captions
-      pictures = []
-      imgurls.each_index do |i|
-        pictures.push([imgurls[i],captions[i]])
-      end
-      stories[name].push(pictures)
-    end
     stories
   end
+
+  def parsestory(name, data)
+    # Get all available information and data of a story
+    puts "Retrieving #{name}"
+    url, title = data
+    page = @agent.get(url)
+
+    # Save the story description
+    data.push(@agent.page.search('.bpBody').children.to_s)
+
+    # Save the image count
+    count = -1
+    @agent.page.search('.bpBody').children.each do |element|
+      if element.class == Nokogiri::XML::Element
+        txt = element.children.to_s 
+        if txt =~ /(\d+) photos total/
+          count = txt.split(' ').first
+        end
+      end
+    end
+    data.push(count)
+
+    # Save image captions
+    captions = []
+    @agent.page.search('.bpCaption').each do |caption|
+      caption.children.each do |element|
+        if element.class == Nokogiri::XML::Text
+          captions.push(element.to_s)
+        end
+      end
+    end
+
+    # Save image URLs
+    imgurls = []
+    @agent.page.search('.bpImage').each do |img|
+      url = img['src']
+      imgurls.push(url)
+    end
+
+    # Merge image URLs and captions
+    pictures = []
+    imgurls.each_index do |i|
+      pictures.push([imgurls[i],captions[i]])
+    end
+    data.push(pictures)
+    data
+  end
+
 
   def saveimg(stories)
     # Download images
