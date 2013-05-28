@@ -4,6 +4,11 @@
 require 'rubygems'
 require 'mechanize'
 
+# Temporary Config
+STARTURL = "http://www.boston.com/bigpicture/"
+BASEDIR = File.expand_path("~/tmp/bbp")
+GETIMG = true
+
 class BBPViewer
   def self.run()
     agent = Mechanize.new
@@ -12,8 +17,7 @@ class BBPViewer
     agent.follow_meta_refresh = true
     agent.redirect_ok = true
 
-    starturl = "http://www.boston.com/bigpicture/"
-    page = agent.get(starturl)
+    page = agent.get(STARTURL)
 
     # stories hash containing all retrieved data
     # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
@@ -86,13 +90,12 @@ class BBPViewer
     agent.follow_meta_refresh = true
     agent.redirect_ok = true
 
-    basedir = "/tmp/bbp/"
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
       url, title, description, photocount, pictures = value
 
-      dir = "#{basedir}/#{name}"
+      dir = "#{BASEDIR}/images/#{name}/full"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
         pictures.each do |entry|
@@ -101,7 +104,43 @@ class BBPViewer
       end
     end
   end
+
+  def self.createhtml(stories)
+    stories.each do |name, value|
+      url, title, description, photocount, pictures = value
+
+      unless File.exists?("#{BASEDIR}/lib")
+        # Get the directory of the programm where a copy of the lib folder is located
+        dir = File.expand_path $0
+        dir = File.readlink(dir) if File.symlink?(dir)
+        dir = File.dirname(dir)
+        fail "No lib directory found" unless File.exists?("#{dir}/lib")
+        FileUtils.mkdir_p BASEDIR
+        FileUtils.cp_r "#{dir}/lib", BASEDIR
+      end
+
+      html = File.open("#{BASEDIR}/#{name}.html", 'w+')
+      File.open("#{BASEDIR}/lib/gen_top.html", 'r') { |top| html.write(top.read) }
+      pictures.each do |entry|
+        url, alt = entry
+        alt.gsub!(/'/,"&#39;")
+        if(GETIMG)
+          # Use local images
+          imgdir = "images/#{name}"
+          imgname = url.split('/').last
+          tag = "        <li><a href='#{imgdir}/full/#{imgname}'><img src='#{imgdir}/full/#{imgname}' alt='#{alt}' /></a></li>"
+        else
+          # Use remote images
+          tag = "        <li><a href='#{url}'><img src='#{url}' alt='#{alt}' /></a></li>"
+        end
+        html.puts(tag)
+      end
+      File.open("#{BASEDIR}/lib/gen_bottom.html", 'r') { |bot| html.write(bot.read) }
+      html.close
+    end
+  end
 end
 
 stories = BBPViewer.run
-BBPViewer.saveimg(stories)
+BBPViewer.saveimg(stories) if GETIMG
+BBPViewer.createhtml(stories)
