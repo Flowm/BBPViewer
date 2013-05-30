@@ -5,8 +5,9 @@ require 'rubygems'
 require 'mechanize'
 
 # Temporary Config
-STARTURL = "http://www.boston.com/bigpicture/"
+BASEURL = "http://www.boston.com/bigpicture"
 BASEDIR = File.expand_path("~/tmp/bbp")
+ONLYRECENT = false
 GETIMG = true
 
 class BBPViewer
@@ -19,11 +20,13 @@ class BBPViewer
   end
 
   def run()
-    page = @agent.get(STARTURL)
-
     # stories hash containing all retrieved data
     # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
-    stories = getrecentstories
+    if ONLYRECENT
+      stories = getrecentstories
+    else
+      stories = getallstories
+    end
 
     # Iterate over the stories
     stories.each do |name, data|
@@ -32,6 +35,8 @@ class BBPViewer
   end
 
   def getrecentstories()
+    page = @agent.get(BASEURL)
+
     stories = {}
     # Search for available stories
     puts "Available stories:"
@@ -41,6 +46,42 @@ class BBPViewer
       title = entry.children.to_s
       stories[name] = [url,title]
       puts "#{title}: #{url}"
+    end
+    puts
+    stories
+  end
+
+  def getallstories()
+    stories = {}
+    puts "Available stories:"
+    (2013..2013).each do |year|
+      (1..5).each do |month|
+        begin
+          page = @agent.get("#{BASEURL}/#{year}/#{sprintf("%2.2d", month)}/")
+        rescue Mechanize::ResponseCodeError => msg  
+          # No stories available for this month
+          next
+        end
+
+        # Search for available stories
+        puts "#{year}-#{sprintf("%2.2d", month)}:"
+        @agent.page.search("/html/body/div/div/div/div[3]/div/table//tr").children.each do |tr|
+          if tr.class == Nokogiri::XML::Element
+            tr.children.each do |entry|
+              if entry.class == Nokogiri::XML::Element && entry.name == "a"
+                url = entry['href']
+                name = url.split('/').last.split('.').first
+                if entry.children.first.class == Nokogiri::XML::Text
+                  title = entry.children.to_s
+                  stories[name] = [url,title]
+                  puts "#{title}: #{url}"
+                end
+              end
+            end
+          end
+        end
+        puts
+      end
     end
     puts
     stories
