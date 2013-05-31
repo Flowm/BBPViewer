@@ -4,11 +4,15 @@
 require 'rubygems'
 require 'mechanize'
 
-# Temporary Config
+# Configuration
 BASEURL = "http://www.boston.com/bigpicture"
+# Temporary Settings
 BASEDIR = File.expand_path("~/tmp/bbp")
 ONLYRECENT = false
-GETIMG = true
+LOCALIMG = true
+THREADEDDL = true
+CREATEHTML = true
+
 
 class BBPViewer
   def initialize()
@@ -28,9 +32,24 @@ class BBPViewer
       stories = getallstories
     end
 
-    # Iterate over the stories
+    # Iterate over the stories and get all data
     stories.each do |name, data|
       data = parsestory(name, data)
+    end
+    puts
+
+    # Optionally download the images
+    if LOCALIMG
+      if THREADEDDL
+        saveimgthreaded(stories)
+      else
+        saveimg(stories)
+      end
+    end
+
+    # Finally create the html gallery
+    if CREATEHTML
+      createhtml(stories)
     end
   end
 
@@ -134,9 +153,8 @@ class BBPViewer
     data
   end
 
-
   def saveimg(stories)
-    # Download images
+    # Downloads the images of the stories
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
@@ -147,6 +165,40 @@ class BBPViewer
       Dir.chdir(dir) do
         pictures.each do |entry|
           @agent.get(entry.first).save
+        end
+      end
+    end
+  end
+
+  def saveimgthreaded(stories)
+    # Threaded version of saveimg
+    # Iterate over the stories
+    stories.each do |name, value|
+      puts "Downloading #{name}"
+      url, title, description, photocount, pictures = value
+
+      dir = "#{BASEDIR}/images/#{name}/full"
+      FileUtils.mkdir_p dir
+      Dir.chdir(dir) do
+        $threads = 0
+        max_threads = 6
+        pictures.each do |url,desc|
+          Thread.new {
+            $threads += 1
+            #p Create new Thread for img #{url}
+            @agent.get(url).save
+            $threads -= 1
+          }
+          sleep 0.1
+          #p Currently #{$threads} Threads running"
+          while $threads >= max_threads
+            # Don't start more then 10 concurrent threads
+            sleep 0.1
+          end
+        end
+        while $threads > 0
+          # Wait for all image downloads of the current story to finish"
+          sleep 1
         end
       end
     end
@@ -171,7 +223,7 @@ class BBPViewer
       pictures.each do |entry|
         url, alt = entry
         alt.gsub!(/'/,"&#39;")
-        if(GETIMG)
+        if LOCALIMG
           # Use local images
           imgdir = "images/#{name}"
           imgname = url.split('/').last
@@ -189,6 +241,4 @@ class BBPViewer
 end
 
 bbpviewer = BBPViewer.new
-stories = bbpviewer.run
-bbpviewer.saveimg(stories) if GETIMG
-bbpviewer.createhtml(stories)
+bbpviewer.run
