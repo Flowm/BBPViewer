@@ -1,0 +1,6 @@
+Replace the global config variables with command line options
+Add thumbnail generation to prevent loading full size images on gallery view
+Add an index.html showing the available stories
+Add a README describing the project
+Add date of the individual stories to the hash
+Scan directory for already processed stories
