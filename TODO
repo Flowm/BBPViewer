@@ -4,3 +4,5 @@ Add an index.html showing the available stories
 Add a README describing the project
 Add date of the individual stories to the hash
 Scan directory for already processed stories
+Add other pictures sites
+Integrate this script in a RoR app someday
