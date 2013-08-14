@@ -165,8 +165,10 @@ class BBPViewer
       dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
-        pictures.each do |entry|
-          @agent.get(entry.first).save
+        pictures.each do |url,desc|
+          unless File.exists?("#{dir}/#{url.split('/').last}")
+            @agent.get(entry.first).save
+          end
         end
       end
     end
@@ -188,7 +190,9 @@ class BBPViewer
           Thread.new {
             $threads += 1
             #p Create new Thread for img #{url}
-            @agent.get(url).save
+            unless File.exists?("#{dir}/#{url.split('/').last}")
+              @agent.get(url).save
+            end
             $threads -= 1
           }
           sleep 0.1
@@ -209,13 +213,15 @@ class BBPViewer
   def createthumbs(stories)
     # Create thumbnails of the images
     stories.each do |name, value|
-      puts "Creating thumbnails for #{name}"
       url, title, description, photocount, pictures = value
-
       dir = "#{BASEDIR}/images/#{name}"
-      FileUtils.mkdir_p "#{dir}/thumbs"
-      Dir.chdir(dir) do
-        system("mogrify -resize 450x300 -background black -gravity center -extent 450X300 -format jpg -quality 75 -path thumbs *.jpg")
+
+      unless File.directory?("#{dir}/thumbs")
+        puts "Creating thumbnails for #{name}"
+        FileUtils.mkdir_p "#{dir}/thumbs"
+        Dir.chdir(dir) do
+          system("mogrify -resize 450x300 -background black -gravity center -extent 450X300 -format jpg -quality 75 -path thumbs *.jpg")
+        end
       end
     end
   end
