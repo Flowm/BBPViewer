@@ -45,6 +45,8 @@ class BBPViewer
       else
         saveimg(stories)
       end
+      # Create thumbnails
+      createthumbs(stories)
     end
 
     # Finally create the html gallery
@@ -160,7 +162,7 @@ class BBPViewer
       puts "Downloading #{name}"
       url, title, description, photocount, pictures = value
 
-      dir = "#{BASEDIR}/images/#{name}/full"
+      dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
         pictures.each do |entry|
@@ -177,7 +179,7 @@ class BBPViewer
       puts "Downloading #{name}"
       url, title, description, photocount, pictures = value
 
-      dir = "#{BASEDIR}/images/#{name}/full"
+      dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
         $threads = 0
@@ -200,6 +202,20 @@ class BBPViewer
           # Wait for all image downloads of the current story to finish"
           sleep 1
         end
+      end
+    end
+  end
+
+  def createthumbs(stories)
+    # Create thumbnails of the images
+    stories.each do |name, value|
+      puts "Creating thumbnails for #{name}"
+      url, title, description, photocount, pictures = value
+
+      dir = "#{BASEDIR}/images/#{name}"
+      FileUtils.mkdir_p "#{dir}/thumbs"
+      Dir.chdir(dir) do
+        system("mogrify -resize 450x300 -background black -gravity center -extent 450X300 -format jpg -quality 75 -path thumbs *.jpg")
       end
     end
   end
@@ -227,7 +243,7 @@ class BBPViewer
           # Use local images
           imgdir = "images/#{name}"
           imgname = url.split('/').last
-          tag = "        <li><a href='#{imgdir}/full/#{imgname}'><img src='#{imgdir}/full/#{imgname}' alt='#{alt}' /></a></li>"
+          tag = "        <li><a href='#{imgdir}/#{imgname}'><img src='#{imgdir}/thumbs/#{imgname}' alt='#{alt}' /></a></li>"
         else
           # Use remote images
           tag = "        <li><a href='#{url}'><img src='#{url}' alt='#{alt}' /></a></li>"
