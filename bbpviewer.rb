@@ -10,7 +10,7 @@ BASEURL = "http://www.boston.com/bigpicture"
 BASEDIR = File.expand_path("~/tmp/bbp")
 ONLYRECENT = false
 LOCALIMG = true
-THREADEDDL = true
+THREADEDDL = false
 CREATEHTML = true
 
 
@@ -52,6 +52,7 @@ class BBPViewer
     # Finally create the html gallery
     if CREATEHTML
       createhtml(stories)
+      createindex(stories)
     end
   end
 
@@ -76,7 +77,7 @@ class BBPViewer
     stories = {}
     puts "Available stories:"
     (2013..2013).each do |year|
-      (1..5).each do |month|
+      (7..8).each do |month|
         begin
           page = @agent.get("#{BASEURL}/#{year}/#{sprintf("%2.2d", month)}/")
         rescue Mechanize::ResponseCodeError => msg  
@@ -167,7 +168,7 @@ class BBPViewer
       Dir.chdir(dir) do
         pictures.each do |url,desc|
           unless File.exists?("#{dir}/#{url.split('/').last}")
-            @agent.get(entry.first).save
+            @agent.get(url).save
           end
         end
       end
@@ -189,7 +190,7 @@ class BBPViewer
         pictures.each do |url,desc|
           Thread.new {
             $threads += 1
-            #p Create new Thread for img #{url}
+            #p "Create new Thread for img #{url}"
             unless File.exists?("#{dir}/#{url.split('/').last}")
               @agent.get(url).save
             end
@@ -256,9 +257,23 @@ class BBPViewer
         end
         html.puts(tag)
       end
-      File.open("#{BASEDIR}/lib/gen_bottom.html", 'r') { |bot| html.write(bot.read) }
+      File.open("#{BASEDIR}/lib/gen_bot.html", 'r') { |bot| html.write(bot.read) }
       html.close
     end
+  end
+
+  def createindex(stories)
+    html = File.open("#{BASEDIR}/index.html", 'w+')
+    File.open("#{BASEDIR}/lib/index_top.html", 'r') { |top| html.write(top.read) }
+    stories.each do |name, value|
+      url, title, description, photocount, pictures = value
+      imgdir = "images/#{name}"
+      imgname = pictures.first.first.split('/').last
+      tag = "        <li><a href='#{name}.html'><h2>#{title}</h2><img src='#{imgdir}/thumbs/#{imgname}' alt='#{title}' /></a></li>"
+      html.puts(tag)
+    end
+    File.open("#{BASEDIR}/lib/index_bot.html", 'r') { |bot| html.write(bot.read) }
+    html.close
   end
 end
 
