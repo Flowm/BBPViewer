@@ -243,6 +243,8 @@ class BBPViewer
 
       html = File.open("#{BASEDIR}/#{name}.html", 'w+')
       File.open("#{BASEDIR}/lib/gen_top.html", 'r') { |top| html.write(top.read) }
+      html.puts("\t\t<h1>#{title}</h1>\n\t</div>\n\n\t<ul id='Gallery' class='gallery'>")
+
       pictures.each do |entry|
         url, alt = entry
         alt.gsub!(/'/,"&#39;")
