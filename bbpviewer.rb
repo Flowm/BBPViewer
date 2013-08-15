@@ -272,7 +272,7 @@ class BBPViewer
       tag = "        <li><a href='#{name}.html'><h2>#{title}</h2><img src='#{imgdir}/thumbs/#{imgname}' alt='#{title}' /></a></li>"
       html.puts(tag)
     end
-    File.open("#{BASEDIR}/lib/index_bot.html", 'r') { |bot| html.write(bot.read) }
+    File.open("#{BASEDIR}/lib/gen_bot.html", 'r') { |bot| html.write(bot.read) }
     html.close
   end
 end
