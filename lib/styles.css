@@ -8,7 +8,7 @@ body {
 }
 h1 {
 	font-size: 2em;
-	padding: 15px 10px;
+	padding: 25px 10px;
 	margin: 0;
 	text-align: center
 }
@@ -68,6 +68,9 @@ a {
 	display: block;
 	margin: 5px;
 	border: 1px solid #3c3c3c;
+	-moz-box-shadow:    3px 3px 5px 4px #ccc;
+	-webkit-box-shadow: 3px 3px 5px 4px #ccc;
+	box-shadow:         3px 3px 5px 4px #ccc;
 }
 .gallery li img {
 	display: block;
