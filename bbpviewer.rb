@@ -25,7 +25,7 @@ class BBPViewer
 
   def run()
     # stories hash containing all retrieved data
-    # {name => [url,title,description,photocount,[[imgurl,caption],...]],...}
+    # {name => [url,title,description,date,photocount,[[imgurl,caption],...]],...}
     if ONLYRECENT
       stories = getrecentstories
     else
@@ -118,6 +118,9 @@ class BBPViewer
     # Save the story description
     data.push(@agent.page.search('.bpBody').children.to_s)
 
+    # Save the story date
+    data.push(@agent.page.search('.beLeftCol').children.children.to_s)
+
     # Save the image count
     count = -1
     @agent.page.search('.bpBody').children.each do |element|
@@ -161,7 +164,7 @@ class BBPViewer
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
-      url, title, description, photocount, pictures = value
+      url, title, description, date, photocount, pictures = value
 
       dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
@@ -180,7 +183,7 @@ class BBPViewer
     # Iterate over the stories
     stories.each do |name, value|
       puts "Downloading #{name}"
-      url, title, description, photocount, pictures = value
+      url, title, description, date, photocount, pictures = value
 
       dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
@@ -214,7 +217,7 @@ class BBPViewer
   def createthumbs(stories)
     # Create thumbnails of the images
     stories.each do |name, value|
-      url, title, description, photocount, pictures = value
+      url, title, description, date, photocount, pictures = value
       dir = "#{BASEDIR}/images/#{name}"
 
       unless File.directory?("#{dir}/thumbs")
@@ -229,7 +232,7 @@ class BBPViewer
 
   def createhtml(stories)
     stories.each do |name, value|
-      url, title, description, photocount, pictures = value
+      url, title, description, date, photocount, pictures = value
 
       unless File.exists?("#{BASEDIR}/lib")
         # Get the directory of the programm where a copy of the lib folder is located
@@ -268,7 +271,7 @@ class BBPViewer
     html = File.open("#{BASEDIR}/index.html", 'w+')
     File.open("#{BASEDIR}/lib/index_top.html", 'r') { |top| html.write(top.read) }
     stories.each do |name, value|
-      url, title, description, photocount, pictures = value
+      url, title, description, date, photocount, pictures = value
       imgdir = "images/#{name}"
       imgname = pictures.first.first.split('/').last
       tag = "        <li><a href='#{name}.html'><h2>#{title}</h2><img src='#{imgdir}/thumbs/#{imgname}' alt='#{title}' /></a></li>"

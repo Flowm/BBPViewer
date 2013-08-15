@@ -2,7 +2,7 @@ Replace the global config variables with command line options
 Save data hash to file to prevent unnecessary requests
 Add a README describing the project
 Optimize threaded DL of images for already existing images
-Add date of the individual stories to the hash
+Sort the story overview by date
 Add progress when downloading images/stories
 Add other pictures sites
 Integrate this script in a RoR app someday
