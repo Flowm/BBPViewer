@@ -40,6 +40,10 @@ class BBPViewer
         puts "Error retrieving story #{name}. Skipping."
         stories.delete(name)
       end
+      if data[4].to_i < 1
+        puts "Removing story #{name} as it contains no photos"
+        stories.delete(name)
+      end
     end
     puts
 
@@ -124,7 +128,7 @@ class BBPViewer
       if element.class == Nokogiri::XML::Element
         txt = element.children.to_s
         if txt =~ /(\d+) photos total/
-          count = txt.split(' ').first
+          count = txt.split(' ').first.to_i
         end
       end
     end
@@ -221,7 +225,7 @@ class BBPViewer
         puts "Creating thumbnails for #{name}"
         FileUtils.mkdir_p "#{dir}/thumbs"
         Dir.chdir(dir) do
-          system("mogrify -resize 450x300 -background black -gravity center -extent 450X300 -format jpg -quality 75 -path thumbs *.jpg")
+          system("mogrify -resize 450x300 -background black -gravity center -extent 450X300 -format jpg -quality 75 -path thumbs *.[jJ][pP][gG]")
         end
       end
     end
