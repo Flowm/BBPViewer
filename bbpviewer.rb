@@ -34,7 +34,12 @@ class BBPViewer
 
     # Iterate over the stories and get all data
     stories.each do |name, data|
-      data = parsestory(name, data)
+      begin
+        data = parsestory(name, data)
+      rescue
+        puts "Error retrieving story #{name}. Skipping."
+        stories.delete(name)
+      end
     end
     puts
 
