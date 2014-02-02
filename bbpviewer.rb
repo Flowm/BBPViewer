@@ -57,7 +57,7 @@ class BBPViewer
   end
 
   def getrecentstories()
-    page = @agent.get(BASEURL)
+    @agent.get(BASEURL)
 
     stories = {}
     # Search for available stories
@@ -76,11 +76,11 @@ class BBPViewer
   def getallstories()
     stories = {}
     puts "Available stories:"
-    (2013..2013).each do |year|
-      (7..8).each do |month|
+    (2014..2014).each do |year|
+      (1..2).each do |month|
         begin
-          page = @agent.get("#{BASEURL}/#{year}/#{sprintf("%2.2d", month)}/")
-        rescue Mechanize::ResponseCodeError => msg  
+          @agent.get("#{BASEURL}/#{year}/#{sprintf("%2.2d", month)}/")
+        rescue Mechanize::ResponseCodeError
           # No stories available for this month
           next
         end
@@ -113,19 +113,19 @@ class BBPViewer
     # Get all available information and data of a story
     puts "Retrieving #{name}"
     url, title = data
-    page = @agent.get(url)
+    @agent.get(url)
 
     # Save the story description
     data.push(@agent.page.search('.bpBody').children.to_s)
 
     # Save the story date
-    data.push(@agent.page.search('.beLeftCol').children.children.to_s)
+    data.push(Date.parse(@agent.page.search('.beLeftCol').children.children.to_s))
 
     # Save the image count
     count = -1
     @agent.page.search('.bpBody').children.each do |element|
       if element.class == Nokogiri::XML::Element
-        txt = element.children.to_s 
+        txt = element.children.to_s
         if txt =~ /(\d+) photos total/
           count = txt.split(' ').first
         end
@@ -169,9 +169,9 @@ class BBPViewer
       dir = "#{BASEDIR}/images/#{name}"
       FileUtils.mkdir_p dir
       Dir.chdir(dir) do
-        pictures.each do |url,desc|
-          unless File.exists?("#{dir}/#{url.split('/').last}")
-            @agent.get(url).save
+        pictures.each do |picurl,desc|
+          unless File.exists?("#{dir}/#{picurl.split('/').last}")
+            @agent.get(picurl).save
           end
         end
       end
@@ -190,12 +190,12 @@ class BBPViewer
       Dir.chdir(dir) do
         $threads = 0
         max_threads = 6
-        pictures.each do |url,desc|
+        pictures.each do |picurl,desc|
           Thread.new {
             $threads += 1
-            #p "Create new Thread for img #{url}"
-            unless File.exists?("#{dir}/#{url.split('/').last}")
-              @agent.get(url).save
+            #p "Create new Thread for img #{picurl}"
+            unless File.exists?("#{dir}/#{picurl.split('/').last}")
+              @agent.get(picurl).save
             end
             $threads -= 1
           }
@@ -270,8 +270,10 @@ class BBPViewer
   def createindex(stories)
     html = File.open("#{BASEDIR}/index.html", 'w+')
     File.open("#{BASEDIR}/lib/index_top.html", 'r') { |top| html.write(top.read) }
-    stories.each do |name, value|
+    stories.sort_by{ |url, title, description, date, photocount, pictures| date }.each do |name, value|
       url, title, description, date, photocount, pictures = value
+      p "#{name} #{date}"
+
       imgdir = "images/#{name}"
       imgname = pictures.first.first.split('/').last
       tag = "        <li><a href='#{name}.html'><h2>#{title}</h2><img src='#{imgdir}/thumbs/#{imgname}' alt='#{title}' /></a></li>"
