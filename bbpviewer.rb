@@ -87,20 +87,12 @@ class BBPViewer
 
         # Search for available stories
         puts "#{year}-#{sprintf("%2.2d", month)}:"
-        @agent.page.search("/html/body/div/div/div/div[3]/div/table//tr").children.each do |tr|
-          if tr.class == Nokogiri::XML::Element
-            tr.children.each do |entry|
-              if entry.class == Nokogiri::XML::Element && entry.name == "a"
-                url = entry['href']
-                name = url.split('/').last.split('.').first
-                if entry.children.first.class == Nokogiri::XML::Text
-                  title = entry.children.to_s
-                  stories[name] = [url,title]
-                  puts "#{title}: #{url}"
-                end
-              end
-            end
-          end
+        @agent.page.search(".headDiv2/h2/a").each do |entry|
+          url = entry['href']
+          name = url.split('/').last.split('.').first
+          title = entry.children.to_s
+          stories[name] = [url,title]
+          puts "#{title}: #{url}"
         end
         puts
       end
